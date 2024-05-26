@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "896549649769",
+    "project_id": "scholmanagementsystem",
+    "storage_bucket": "scholmanagementsystem.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:896549649769:android:7932969d4dee91185091f8",
+        "android_client_info": {
+          "package_name": "com.practice"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAN19mvlwAaU15v1qF7KkIFEcbm3kWkzGI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
