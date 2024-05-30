@@ -12,6 +12,9 @@ import AssignRemoveClass from './src/screens/admin/arClasstoTeacher';
 import StudentManagement from './src/screens/admin/studentManagement';
 import FeeStatusManagement from './src/screens/admin/feeStatusManagement';
 import ViewReports from './src/screens/admin/viewReports';
+import StudentDashboard from './src/screens/Student/dashboard';
+import TeacherDashboard from './src/screens/Teacher/dashboard';
+import SelectStudent from './src/screens/Teacher/selectStudent';
 
 const stack = createNativeStackNavigator();
 
@@ -28,6 +31,9 @@ const App = () => {
             <stack.Screen name="StudentManagement" component={StudentManagement} options={{headerShown: false}}/>
             <stack.Screen name="FeeStatusManagement" component={FeeStatusManagement} options={{headerShown: false}}/>
             <stack.Screen name="ViewReports" component={ViewReports} options={{headerShown: false}}/>
+            <stack.Screen name="StudentDashboard" component={StudentDashboard} options={{headerShown: false}}/>
+            <stack.Screen name="TeacherDashboard" component={TeacherDashboard} options={{headerShown: false}}/>
+            <stack.Screen name="SelectStudent" component={SelectStudent} options={{headerShown: false}}/>
           </stack.Navigator>
         </NavigationContainer>
       </GestureHandlerRootView>

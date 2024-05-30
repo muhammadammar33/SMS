@@ -4,6 +4,14 @@ import { View, StyleSheet } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 
 export default function AdminDashboard({ navigation }) {
+    const handleLogout = async () => {
+        try {
+            navigation.replace('SignIn'); // Navigate to your login screen
+        } catch (error) {
+            console.error('Failed to logout: ', error);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Admin Dashboard</Text>
@@ -49,6 +57,13 @@ export default function AdminDashboard({ navigation }) {
             >
                 Upload/Remove Syllabus
             </Button>
+            <Button
+                mode="contained"
+                onPress={handleLogout}
+                style={styles.logoutbutton}
+            >
+                Logout
+            </Button>
         </View>
     );
 }
@@ -70,5 +85,9 @@ const styles = StyleSheet.create({
     button: {
         marginVertical: 10,
         backgroundColor: '#446cb4',
+    },
+    logoutbutton: {
+        marginVertical: 10,
+        backgroundColor: '#ff4237',
     },
 });

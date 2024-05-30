@@ -3,13 +3,17 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, ScrollView } from 'react-native';
 import { Button, Text, TextInput, RadioButton, ActivityIndicator } from 'react-native-paper';
 import firestore from '@react-native-firebase/firestore';
+import DatePicker from 'react-native-date-picker';
 
 export default function StudentManagement() {
     const [students, setStudents] = useState([]);
+    const [classes, setClasses] = useState([]);
+    const [selectedClass, setSelectedClass] = useState(null);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isModalVisible, setModalVisible] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
+    // const [date, setDate] = useState(new Date());
 
     // Form Fields
     const [formFields, setFormFields] = useState({
@@ -40,16 +44,42 @@ export default function StudentManagement() {
             setLoading(false);
         };
 
+        // Fetch classes
+        const fetchClasses = async () => {
+            const classList = [];
+            const snapshot = await firestore().collection('classes').get();
+            snapshot.forEach(doc => {
+                classList.push({ id: doc.id, ...doc.data() });
+            });
+            setClasses(classList);
+            setLoading(false);
+        };
+        fetchClasses();
+
         fetchStudents();
         setLoading(false);
     }, []);
 
     const addStudent = async () => {
         try {
-            await firestore().collection('students').add(formFields);
+            const studentRef = await firestore().collection('students').add(formFields);
+            if (selectedClass) {
+                const classRef = firestore().collection('classes').doc(selectedClass);
+                const classDoc = await classRef.get();
+                if (classDoc.exists) {
+                    const { studentAssigned = [] } = classDoc.data();
+                    if (!studentAssigned.includes(studentRef.id)) {
+                        await classRef.update({
+                            studentAssigned: firestore.FieldValue.arrayUnion(studentRef.id),
+                        });
+                        Alert.alert('Success', 'Student added and assigned to class successfully');
+                    } else {
+                        Alert.alert('Success', 'Student added successfully');
+                    }
+                }
+            }
             clearForm();
             setModalVisible(false);
-            Alert.alert('Success', 'Student added successfully');
         } catch (error) {
             Alert.alert('Error', 'Failed to add student');
         }
@@ -58,11 +88,30 @@ export default function StudentManagement() {
     const updateStudent = async () => {
         try {
             await firestore().collection('students').doc(selectedStudent.id).update(formFields);
+
+            if (selectedClass) {
+                const classRef = firestore().collection('classes').doc(selectedClass);
+                const classDoc = await classRef.get();
+
+                if (classDoc.exists) {
+                    const { studentAssigned = [] } = classDoc.data();
+                    if (!studentAssigned.includes(selectedStudent.id)) {
+                        await classRef.update({
+                            studentAssigned: firestore.FieldValue.arrayUnion(selectedStudent.id),
+                        });
+                        Alert.alert('Success', 'Student updated and assigned to class successfully');
+                    } else {
+                        Alert.alert('Success', 'Student updated successfully');
+                    }
+                }
+            } else {
+                Alert.alert('Success', 'Student updated successfully');
+            }
+
             setSelectedStudent(null);
             clearForm();
             setModalVisible(false);
             setIsEdit(false);
-            Alert.alert('Success', 'Student updated successfully');
         } catch (error) {
             Alert.alert('Error', 'Failed to update student');
         }
@@ -70,12 +119,41 @@ export default function StudentManagement() {
 
     const deleteStudent = async (id) => {
         try {
-            await firestore().collection('students').doc(id).delete();
-            Alert.alert('Success', 'Student deleted successfully');
+            const studentRef = firestore().collection('students').doc(id);
+            const studentDoc = await studentRef.get();
+
+            if (studentDoc.exists) {
+                const { admissionClass } = studentDoc.data();
+
+                if (admissionClass) {
+                    const classQuerySnapshot = await firestore()
+                        .collection('classes')
+                        .where('name', '==', admissionClass)
+                        .get();
+
+                    if (!classQuerySnapshot.empty) {
+                        const classDoc = classQuerySnapshot.docs[0];
+                        const classRef = classDoc.ref;
+                        const { studentAssigned = [] } = classDoc.data();
+
+                        if (studentAssigned.includes(id)) {
+                            await classRef.update({
+                                studentAssigned: firestore.FieldValue.arrayRemove(id),
+                            });
+                        }
+                    }
+                }
+
+                await studentRef.delete();
+                Alert.alert('Success', 'Student deleted successfully');
+            } else {
+                Alert.alert('Error', 'Student does not exist');
+            }
         } catch (error) {
             Alert.alert('Error', 'Failed to delete student');
         }
     };
+
 
     const handleStudentPress = (student) => {
         setSelectedStudent(student);
@@ -155,6 +233,7 @@ export default function StudentManagement() {
                         style={styles.input}
                         keyboardType="numeric"
                     />
+                    {/* <DatePicker mode="date" date={date} onDateChange={setDate} /> */}
                     <TextInput
                         label="Admission Date"
                         value={formFields.dateOfAdmission}
@@ -204,11 +283,21 @@ export default function StudentManagement() {
                         onChangeText={(text) => setFormFields({ ...formFields, residence: text })}
                         style={styles.input}
                     />
-                    <TextInput
-                        label="Admission Class"
-                        value={formFields.admissionClass}
-                        onChangeText={(text) => setFormFields({ ...formFields, admissionClass: text })}
-                        style={styles.input}
+                    <Text style={styles.subtitle}>Select Class:</Text>
+                    <FlatList
+                        data={classes}
+                        renderItem={({ item }) => (
+                            <TouchableOpacity
+                                style={[styles.item, selectedClass === item.id && styles.selectedItem]}
+                                onPress={() => {
+                                    setFormFields({ ...formFields, admissionClass: item.name });
+                                    setSelectedClass(item.id);
+                                }}
+                            >
+                                <Text style={styles.itemText}>{item.name}</Text>
+                            </TouchableOpacity>
+                        )}
+                        keyExtractor={item => item.id}
                     />
                     <TextInput
                         label="Password"
@@ -246,9 +335,21 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         color: '#446cb4',
     },
+    loading: {
+        flex: 1,
+        justifyContent: 'center',
+    },
     button: {
         marginVertical: 10,
         backgroundColor: '#446cb4',
+    },
+    subtitle: {
+        fontSize: 18,
+        marginVertical: 10,
+        color: '#446cb4',
+    },
+    selectedItem: {
+        backgroundColor: '#cce5ff',
     },
     item: {
         padding: 15,
