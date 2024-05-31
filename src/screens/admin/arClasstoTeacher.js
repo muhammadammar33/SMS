@@ -96,7 +96,7 @@ export default function AssignRemoveClass() {
                 const { teacherAssigned = [] } = classDoc.data();
                 if (teacherAssigned.includes(selectedTeacher)) {
                     await classRef.update({
-                        TeacherAssigned: firestore.FieldValue.arrayRemove(selectedTeacher),
+                        teacherAssigned: firestore.FieldValue.arrayRemove(selectedTeacher),
                     });
                     Alert.alert('Success', 'Class removed successfully');
                 } else {

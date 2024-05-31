@@ -53,18 +53,18 @@ export default function TeacherDashboard({ route, navigation }) {
                     setStudents(studentList);
                     setLoading(false);
 
-                    // console.log('Class List:', classList);
-                    // console.log('Student List:', studentList);
-                    // console.log('Student List:', students);
+                    // Debugging output
+                    console.log('Class List:', classList);
+                    console.log('Student List:', studentList);
                 };
-                console.log('Student List:', students);
+
                 fetchClassesAndStudents();
 
                 // Fetch marks
                 const marksList = [];
                 const marksSnapshot = await firestore()
                     .collection('marks')
-                    .where('classAssigned', '==', teacher)
+                    .where('subjectTeacher', '==', teacher.name)
                     .get();
                 marksSnapshot.forEach(doc => {
                     marksList.push({ id: doc.id, ...doc.data() });
@@ -78,19 +78,19 @@ export default function TeacherDashboard({ route, navigation }) {
         };
 
         fetchStudentsAndMarks();
-    }, [students, teacher]);
+    }, [teacher]);
 
     const handleAddMark = async () => {
         if (selectedStudent && newExam && newMark) {
             try {
-                await firestore().collection('marks').add({
+                const newMarkDoc = await firestore().collection('marks').add({
                     studentId: selectedStudent.id,
                     subject: teacher.subject,
                     exam: newExam,
                     marks: newMark,
                     subjectTeacher: teacher.name,
                 });
-                setMarks([...marks, { studentId: selectedStudent.id, exam: newExam, marks: newMark }]);
+                setMarks([...marks, { id: newMarkDoc.id, studentId: selectedStudent.id, exam: newExam, marks: newMark }]);
                 setNewMark('');
                 setNewExam('');
                 setSelectedStudent(null);

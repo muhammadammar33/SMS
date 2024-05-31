@@ -6,7 +6,7 @@ import { Button, Text } from 'react-native-paper';
 export default function AdminDashboard({ navigation }) {
     const handleLogout = async () => {
         try {
-            navigation.replace('SignIn'); // Navigate to your login screen
+            navigation.replace('SignIn');
         } catch (error) {
             console.error('Failed to logout: ', error);
         }

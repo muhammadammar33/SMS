@@ -4,6 +4,7 @@ import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, Text } from
 import { Button, TextInput, RadioButton, ActivityIndicator } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import firestore from '@react-native-firebase/firestore';
+import { ScrollView } from 'react-native-gesture-handler';
 
 export default function StudentManagement() {
     const [students, setStudents] = useState([]);
@@ -131,12 +132,24 @@ export default function StudentManagement() {
                         }
                     }
                 }
+
+                const marksQuerySnapshot = await firestore()
+                    .collection('marks')
+                    .where('studentId', '==', id)
+                    .get();
+                const batch = firestore().batch();
+                marksQuerySnapshot.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+
                 await studentRef.delete();
-                Alert.alert('Success', 'Student deleted successfully');
+                Alert.alert('Success', 'Student and associated marks deleted successfully');
             } else {
                 Alert.alert('Error', 'Student does not exist');
             }
         } catch (error) {
+            console.error('Failed to delete student: ', error);
             Alert.alert('Error', 'Failed to delete student');
         }
     };
@@ -235,6 +248,7 @@ export default function StudentManagement() {
                 return (
                     <>
                         <Text style={styles.subtitle}>{item.label}:</Text>
+                        <ScrollView>
                         <FlatList
                             data={classes}
                             renderItem={({ item: classItem }) => (
@@ -250,17 +264,17 @@ export default function StudentManagement() {
                             )}
                             keyExtractor={(classItem) => classItem.id}
                         />
+                        </ScrollView>
                     </>
                 );
             default:
                 return (
-                    <TextInput
+                    <><TextInput
                         label={item.label}
                         value={formFields[item.key]}
                         onChangeText={(text) => setFormFields({ ...formFields, [item.key]: text })}
                         style={styles.input}
-                        keyboardType={item.keyboardType}
-                    />
+                        keyboardType={item.keyboardType} /><Text style={styles.space}> </Text></>
                 );
         }
     };
@@ -381,5 +395,8 @@ const styles = StyleSheet.create({
     gendertitle: {
         fontSize: 20,
         fontWeight: 'bold',
+    },
+    space: {
+        height: 250,
     },
 });
