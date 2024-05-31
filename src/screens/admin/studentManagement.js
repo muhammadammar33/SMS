@@ -1,9 +1,9 @@
 /* eslint-disable prettier/prettier */
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, ScrollView } from 'react-native';
-import { Button, Text, TextInput, RadioButton, ActivityIndicator } from 'react-native-paper';
+import React, {useState, useEffect} from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, Text } from 'react-native';
+import { Button, TextInput, RadioButton, ActivityIndicator } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import firestore from '@react-native-firebase/firestore';
-import DatePicker from 'react-native-date-picker';
 
 export default function StudentManagement() {
     const [students, setStudents] = useState([]);
@@ -13,15 +13,11 @@ export default function StudentManagement() {
     const [loading, setLoading] = useState(true);
     const [isModalVisible, setModalVisible] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
-    // const [date, setDate] = useState(new Date());
-
-    // Form Fields
     const [formFields, setFormFields] = useState({
         registrationNumber: '',
-        dateOfAdmission: '',
+        dateOfAdmission: new Date(),
         name: '',
-        dateOfBirth: '',
-        age: '',
+        dateOfBirth: new Date(),
         gender: '',
         fatherName: '',
         caste: '',
@@ -31,9 +27,10 @@ export default function StudentManagement() {
         password: '',
         remarks: '',
     });
+    const [showAdmissionDatePicker, setShowAdmissionDatePicker] = useState(false);
+    const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
 
     useEffect(() => {
-        // Fetch students
         const fetchStudents = async () => {
             const studentList = [];
             const snapshot = await firestore().collection('students').get();
@@ -44,7 +41,6 @@ export default function StudentManagement() {
             setLoading(false);
         };
 
-        // Fetch classes
         const fetchClasses = async () => {
             const classList = [];
             const snapshot = await firestore().collection('classes').get();
@@ -54,10 +50,9 @@ export default function StudentManagement() {
             setClasses(classList);
             setLoading(false);
         };
-        fetchClasses();
 
+        fetchClasses();
         fetchStudents();
-        setLoading(false);
     }, []);
 
     const addStudent = async () => {
@@ -88,11 +83,9 @@ export default function StudentManagement() {
     const updateStudent = async () => {
         try {
             await firestore().collection('students').doc(selectedStudent.id).update(formFields);
-
             if (selectedClass) {
                 const classRef = firestore().collection('classes').doc(selectedClass);
                 const classDoc = await classRef.get();
-
                 if (classDoc.exists) {
                     const { studentAssigned = [] } = classDoc.data();
                     if (!studentAssigned.includes(selectedStudent.id)) {
@@ -107,7 +100,6 @@ export default function StudentManagement() {
             } else {
                 Alert.alert('Success', 'Student updated successfully');
             }
-
             setSelectedStudent(null);
             clearForm();
             setModalVisible(false);
@@ -121,21 +113,17 @@ export default function StudentManagement() {
         try {
             const studentRef = firestore().collection('students').doc(id);
             const studentDoc = await studentRef.get();
-
             if (studentDoc.exists) {
                 const { admissionClass } = studentDoc.data();
-
                 if (admissionClass) {
                     const classQuerySnapshot = await firestore()
                         .collection('classes')
                         .where('name', '==', admissionClass)
                         .get();
-
                     if (!classQuerySnapshot.empty) {
                         const classDoc = classQuerySnapshot.docs[0];
                         const classRef = classDoc.ref;
                         const { studentAssigned = [] } = classDoc.data();
-
                         if (studentAssigned.includes(id)) {
                             await classRef.update({
                                 studentAssigned: firestore.FieldValue.arrayRemove(id),
@@ -143,7 +131,6 @@ export default function StudentManagement() {
                         }
                     }
                 }
-
                 await studentRef.delete();
                 Alert.alert('Success', 'Student deleted successfully');
             } else {
@@ -154,10 +141,9 @@ export default function StudentManagement() {
         }
     };
 
-
     const handleStudentPress = (student) => {
         setSelectedStudent(student);
-        setFormFields(student);
+        setFormFields({ ...student, dateOfAdmission: student.dateOfAdmission.toDate(), dateOfBirth: student.dateOfBirth.toDate() });
         setIsEdit(true);
         setModalVisible(true);
     };
@@ -165,9 +151,9 @@ export default function StudentManagement() {
     const clearForm = () => {
         setFormFields({
             registrationNumber: '',
-            dateOfAdmission: '',
+            dateOfAdmission: new Date(),
             name: '',
-            dateOfBirth: '',
+            dateOfBirth: new Date(),
             gender: '',
             fatherName: '',
             caste: '',
@@ -179,144 +165,147 @@ export default function StudentManagement() {
         });
     };
 
+    const handleDateChange = (event, selectedDate, field) => {
+        const currentDate = selectedDate || formFields[field];
+        setFormFields({ ...formFields, [field]: currentDate });
+        if (field === 'dateOfAdmission') {
+            setShowAdmissionDatePicker(false);
+        } else if (field === 'dateOfBirth') {
+            setShowBirthDatePicker(false);
+        }
+    };
+
+    const formFieldsArray = [
+        { key: 'registrationNumber', label: 'Registration Number', keyboardType: 'numeric' },
+        { key: 'dateOfAdmission', label: 'Admission Date', type: 'date' },
+        { key: 'name', label: 'Name' },
+        { key: 'dateOfBirth', label: 'Date of Birth', type: 'date' },
+        { key: 'gender', label: 'Gender', type: 'radio' },
+        { key: 'fatherName', label: 'Father Name' },
+        { key: 'caste', label: 'Caste' },
+        { key: 'occupation', label: 'Occupation' },
+        { key: 'residence', label: 'Residence' },
+        { key: 'admissionClass', label: 'Select Class', type: 'class' },
+        { key: 'password', label: 'Password' },
+        { key: 'remarks', label: 'Remarks' },
+    ];
+
+    const renderFormItem = ({ item }) => {
+        switch (item.type) {
+            case 'date':
+                return (
+                    <TouchableOpacity onPress={() => (item.key === 'dateOfAdmission' ? setShowAdmissionDatePicker(true) : setShowBirthDatePicker(true))}>
+                        <TextInput
+                            label={item.label}
+                            value={formFields[item.key].toDateString()}
+                            style={styles.input}
+                            editable={false}
+                        />
+                        {item.key === 'dateOfAdmission' && showAdmissionDatePicker && (
+                            <DateTimePicker
+                                value={formFields.dateOfAdmission}
+                                mode="date"
+                                display="default"
+                                onChange={(event, selectedDate) => handleDateChange(event, selectedDate, 'dateOfAdmission')}
+                            />
+                        )}
+                        {item.key === 'dateOfBirth' && showBirthDatePicker && (
+                            <DateTimePicker
+                                value={formFields.dateOfBirth}
+                                mode="date"
+                                display="default"
+                                onChange={(event, selectedDate) => handleDateChange(event, selectedDate, 'dateOfBirth')}
+                            />
+                        )}
+                    </TouchableOpacity>
+                );
+            case 'radio':
+                return (
+                    <>
+                        <Text style={styles.gendertitle}>{item.label}</Text>
+                        <RadioButton.Group onValueChange={(value) => setFormFields({ ...formFields, gender: value })} value={formFields.gender}>
+                            <View style={styles.radioButtonContainer}>
+                                <RadioButton.Item label="Male" value="Male" />
+                                <RadioButton.Item label="Female" value="Female" />
+                            </View>
+                        </RadioButton.Group>
+                    </>
+                );
+            case 'class':
+                return (
+                    <>
+                        <Text style={styles.subtitle}>{item.label}:</Text>
+                        <FlatList
+                            data={classes}
+                            renderItem={({ item: classItem }) => (
+                                <TouchableOpacity
+                                    style={[styles.item, selectedClass === classItem.id && styles.selectedItem]}
+                                    onPress={() => {
+                                        setFormFields({ ...formFields, admissionClass: classItem.name });
+                                        setSelectedClass(classItem.id);
+                                    }}
+                                >
+                                    <Text style={styles.itemText}>{classItem.name}</Text>
+                                </TouchableOpacity>
+                            )}
+                            keyExtractor={(classItem) => classItem.id}
+                        />
+                    </>
+                );
+            default:
+                return (
+                    <TextInput
+                        label={item.label}
+                        value={formFields[item.key]}
+                        onChangeText={(text) => setFormFields({ ...formFields, [item.key]: text })}
+                        style={styles.input}
+                        keyboardType={item.keyboardType}
+                    />
+                );
+        }
+    };
+
     if (loading) {
-        return <ActivityIndicator size="large" style={styles.loading} />;
+        return (
+            <View style={styles.loading}>
+                <ActivityIndicator size="large" color="#446cb4" />
+            </View>
+        );
     }
 
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Student Management</Text>
-            <Button
-                mode="contained"
-                onPress={() => {
-                    clearForm();
-                    setIsEdit(false);
-                    setModalVisible(true);
-                }}
-                style={styles.button}
-            >
-                Add Student
-            </Button>
             <FlatList
                 data={students}
                 renderItem={({ item }) => (
-                    <TouchableOpacity
-                        style={styles.item}
-                        onPress={() => handleStudentPress(item)}
-                    >
+                    <TouchableOpacity style={styles.item} onPress={() => handleStudentPress(item)}>
                         <Text style={styles.itemText}>{item.name}</Text>
                         <Text style={styles.itemText}>{item.registrationNumber}</Text>
                         <Text style={styles.itemText}>{item.admissionClass}</Text>
-                        <Button
-                            mode="contained"
-                            onPress={() => deleteStudent(item.id)}
-                            style={styles.deleteButton}
-                        >
+                        <Button onPress={() => deleteStudent(item.id)} style={styles.deleteButton}>
                             Delete
                         </Button>
                     </TouchableOpacity>
                 )}
-                keyExtractor={item => item.id}
+                keyExtractor={(item) => item.id}
             />
-            <Modal
-                visible={isModalVisible}
-                animationType="slide"
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <ScrollView>
+            <Button onPress={() => setModalVisible(true)} style={styles.button}>
+                Add Student
+            </Button>
+            <Modal visible={isModalVisible} animationType="slide" onRequestClose={() => setModalVisible(false)}>
                 <View style={styles.modalContainer}>
-                    <Text style={styles.modalTitle}>{isEdit ? 'Update Student' : 'Add Student'}</Text>
-                    <TextInput
-                        label="Registration Number"
-                        value={formFields.registrationNumber}
-                        onChangeText={(text) => setFormFields({ ...formFields, registrationNumber: text })}
-                        style={styles.input}
-                        keyboardType="numeric"
-                    />
-                    {/* <DatePicker mode="date" date={date} onDateChange={setDate} /> */}
-                    <TextInput
-                        label="Admission Date"
-                        value={formFields.dateOfAdmission}
-                        onChangeText={(text) => setFormFields({ ...formFields, dateOfAdmission: text })}
-                        style={styles.input}
-                    />
-                    <TextInput
-                        label="Name"
-                        value={formFields.name}
-                        onChangeText={(text) => setFormFields({ ...formFields, name: text })}
-                        style={styles.input}
-                    />
-                    <TextInput
-                        label="Date of Birth"
-                        value={formFields.dateOfBirth}
-                        onChangeText={(text) => setFormFields({ ...formFields, dateOfBirth: text })}
-                        style={styles.input}
-                    />
-                    <Text style={styles.gendertitle}>Gender</Text>
-                    <RadioButton.Group onValueChange={value => setFormFields({ ...formFields, gender: value })} value={formFields.gender}>
-                        <View style={styles.radioButtonContainer}>
-                            <RadioButton.Item label="Male" value="Male" />
-                            <RadioButton.Item label="Female" value="Female" />
-                        </View>
-                    </RadioButton.Group>
-                    <TextInput
-                        label="Father Name"
-                        value={formFields.fatherName}
-                        onChangeText={(text) => setFormFields({ ...formFields, fatherName: text })}
-                        style={styles.input}
-                    />
-                    <TextInput
-                        label="Caste"
-                        value={formFields.caste}
-                        onChangeText={(text) => setFormFields({ ...formFields, caste: text })}
-                        style={styles.input}
-                    />
-                    <TextInput
-                        label="Occupation"
-                        value={formFields.occupation}
-                        onChangeText={(text) => setFormFields({ ...formFields, occupation: text })}
-                        style={styles.input}
-                    />
-                    <TextInput
-                        label="Residence"
-                        value={formFields.residence}
-                        onChangeText={(text) => setFormFields({ ...formFields, residence: text })}
-                        style={styles.input}
-                    />
-                    <Text style={styles.subtitle}>Select Class:</Text>
+                    <Text style={styles.modalTitle}>{isEdit ? 'Edit Student' : 'Add Student'}</Text>
                     <FlatList
-                        data={classes}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity
-                                style={[styles.item, selectedClass === item.id && styles.selectedItem]}
-                                onPress={() => {
-                                    setFormFields({ ...formFields, admissionClass: item.name });
-                                    setSelectedClass(item.id);
-                                }}
-                            >
-                                <Text style={styles.itemText}>{item.name}</Text>
-                            </TouchableOpacity>
-                        )}
-                        keyExtractor={item => item.id}
-                    />
-                    <TextInput
-                        label="Password"
-                        value={formFields.password}
-                        onChangeText={(text) => setFormFields({ ...formFields, password: text })}
-                        style={styles.input}
-                    />
-                    <TextInput
-                        label="Remarks"
-                        value={formFields.remarks}
-                        onChangeText={(text) => setFormFields({ ...formFields, remarks: text })}
-                        style={styles.input}
+                        data={formFieldsArray}
+                        renderItem={renderFormItem}
+                        keyExtractor={(item) => item.key}
                     />
                     <Button onPress={() => { setModalVisible(false); clearForm(); }}>Cancel</Button>
                     <Button onPress={isEdit ? updateStudent : addStudent} style={styles.button}>
                         {isEdit ? 'Update' : 'Add'}
                     </Button>
                 </View>
-                </ScrollView>
             </Modal>
         </View>
     );
@@ -390,7 +379,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     gendertitle: {
-        marginLeft: -250,
         fontSize: 20,
         fontWeight: 'bold',
     },

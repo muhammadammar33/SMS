@@ -295,4 +295,8 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
     },
+    logoutbutton: {
+        marginVertical: 10,
+        backgroundColor: '#ff4237',
+    },
 });

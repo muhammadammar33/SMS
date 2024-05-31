@@ -15,6 +15,8 @@ import ViewReports from './src/screens/admin/viewReports';
 import StudentDashboard from './src/screens/Student/dashboard';
 import TeacherDashboard from './src/screens/Teacher/dashboard';
 import SelectStudent from './src/screens/Teacher/selectStudent';
+import UploadRemoveTimetable from './src/screens/admin/timetable';
+import UploadRemoveSyllabus from './src/screens/admin/syllabus';
 
 const stack = createNativeStackNavigator();
 
@@ -34,6 +36,8 @@ const App = () => {
             <stack.Screen name="StudentDashboard" component={StudentDashboard} options={{headerShown: false}}/>
             <stack.Screen name="TeacherDashboard" component={TeacherDashboard} options={{headerShown: false}}/>
             <stack.Screen name="SelectStudent" component={SelectStudent} options={{headerShown: false}}/>
+            <stack.Screen name="UploadRemoveTimetable" component={UploadRemoveTimetable} options={{headerShown: false}}/>
+            <stack.Screen name="UploadRemoveSyllabus" component={UploadRemoveSyllabus} options={{headerShown: false}}/>
           </stack.Navigator>
         </NavigationContainer>
       </GestureHandlerRootView>
